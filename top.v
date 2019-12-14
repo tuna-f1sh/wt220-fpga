@@ -12,7 +12,7 @@ wire [9:0] x;
 wire [9:0] y;
 
 // framebuffer
-reg [7:0] mem [0:2400];
+reg [7:0] mem[0:2400];
 reg [7:0] boot [0:580];
 reg [9:0] boot_char;
 
@@ -57,29 +57,28 @@ wire [11:0] pos;
 // char cords to place next char
 reg [6:0] p_x;
 reg [4:0] p_y;
-/* reg pop; */
+reg pop;
 
 reg valid;
 reg [7:0] display_char;
 reg [7:0] display_data;
 
 assign pos = p_x + p_y*80;
+integer i;
 
 always @(posedge clk_25mhz) begin
+  if (pop) begin
+    for (i = 0; i <  2400; i=i+1)
+      mem[i] <= i < 2320 ? mem[i+80] : 8'd32;
+    p_y <= 28;
+    pop <= 0;
   // put char in memory
-  if (valid) begin
+  end else if (valid) begin
     mem[pos] <= display_char;
   // blink cursor
   end else if (cursor_blink) begin
     mem[pos] <= cursor_on ? 8'd95 : 8'd32;
     cursor_on <= !cursor_on;
-  /* end else if (pop) begin */
-  /*   for (k = 0; k < 2400; k = k + 1) begin */
-  /*     if (k < 2319) */
-  /*       mem[k] <= mem[k+80]; */
-  /*     else */
-  /*       mem[k] <= 8'd32; */
-  /*   end */
   end
   display_data <= mem[(y >> 4) * 80 + (x>>3)];
   clk_500khz <= clk_500khz + 1;
@@ -96,14 +95,17 @@ always @(posedge clk_25mhz)
       valid <= 0;
       boot_char <= 0;
       boot_up <= 1;
-      /* pop <= 0; */
+      pop <= 0;
     end else begin
       case (state)
         0: begin  // receiving char
           if (rx_valid)
             begin
             if (uart_out == 8'd13) begin// CR
-              p_y <= p_y + 1;
+              if (p_y < 29)
+                p_y <= p_y + 1;
+              else
+                pop <= 1;
             end else if (uart_out == 8'd10) begin  // LF
               p_x <= 0;
             end else begin
@@ -112,7 +114,6 @@ always @(posedge clk_25mhz)
               state <= 1;
               end
           end
-          /* pop <= 0; */
         end
         1: begin  // display char
           if (p_x < 79)
@@ -121,18 +122,19 @@ always @(posedge clk_25mhz)
             if (p_y < 29)
               p_y <= p_y + 1;
             else
-              p_y <= 0;
+              pop <= 1;
             p_x <= 0;
-            /* pop <= 1; */
           end
           valid <= 0;
           state <= boot_up ? 2 : 0;
         end
         2: begin // print char buffer
           if (boot[boot_char] == 8'd13) begin// CR
-            p_y <= p_y + 1;
+            if (p_y < 29)
+              p_y <= p_y + 1;
+            else
+              pop <= 1;
           end else if (boot[boot_char] == 8'd10) begin
-            p_y <= p_y + 1;
             p_x <= 0;
           end else begin
             valid <= 1;
@@ -141,7 +143,6 @@ always @(posedge clk_25mhz)
           end
           boot_char <= boot_up ? boot_char + 1 : 0;
           boot_up <= boot_char < 579 ? 1: 0;
-          /* pop <= 0; */
       end
     endcase
   end
