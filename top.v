@@ -70,10 +70,9 @@ always @(posedge clk_25mhz) begin
   if (pop) begin
     for (i = 0; i <  2400; i=i+1)
       mem[i] <= i < 2320 ? mem[i+80] : 8'd32;
-    p_y <= 28;
-    pop <= 0;
+  end
   // put char in memory
-  end else if (valid) begin
+  else if (valid) begin
     mem[pos] <= display_char;
   // blink cursor
   end else if (cursor_blink) begin
@@ -104,25 +103,33 @@ always @(posedge clk_25mhz)
             if (uart_out == 8'd13) begin// CR
               if (p_y < 29)
                 p_y <= p_y + 1;
-              else
+              else begin
+                p_y <= 28;
                 pop <= 1;
+              end
             end else if (uart_out == 8'd10) begin  // LF
               p_x <= 0;
+              pop <= 0;
             end else begin
               valid <= 1;
               display_char <= uart_out;
               state <= 1;
-              end
+              pop <= 0;
+            end
           end
         end
         1: begin  // display char
-          if (p_x < 79)
+          if (p_x < 79) begin
             p_x <= p_x + 1;
-          else begin
-            if (p_y < 29)
+            pop <= 0;
+          end else begin
+            if (p_y < 29) begin
               p_y <= p_y + 1;
-            else
+              pop <= 0;
+            end else begin
+              p_y <= 28;
               pop <= 1;
+            end
             p_x <= 0;
           end
           valid <= 0;
@@ -132,14 +139,19 @@ always @(posedge clk_25mhz)
           if (boot[boot_char] == 8'd13) begin// CR
             if (p_y < 29)
               p_y <= p_y + 1;
-            else
+            else begin
+              p_y <= 28;
               pop <= 1;
+            end
           end else if (boot[boot_char] == 8'd10) begin
+            p_y <= p_y + 1;
             p_x <= 0;
+            pop <= 0;
           end else begin
             valid <= 1;
             display_char <= boot[boot_char];
             state <= 1;
+            pop <= 0;
           end
           boot_char <= boot_up ? boot_char + 1 : 0;
           boot_up <= boot_char < 579 ? 1: 0;
