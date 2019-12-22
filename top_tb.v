@@ -33,10 +33,6 @@ initial begin
   $dumpvars;
   clk_25mhz = 1'b0;
   ftdi_txd = 1'b0;
-  /* usb_dp = 1'b0; */
-  /* usb_dn = 1'b0; */
-  /* usb_pu_dp = 1'b0; */
-  /* usb_pu_dn = 1'b0; */
   #(PERIOD/2);
   forever
     #(PERIOD/2) clk_25mhz = ~clk_25mhz;

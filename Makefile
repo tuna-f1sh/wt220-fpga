@@ -1,3 +1,5 @@
+PROJECT_NAME = WT-220-FPGA
+
 YOSYS_ECP5 = ~/.apio/packages/toolchain-yosys/share/yosys/ecp5
 NEXTPNR = ~/.apio/packages/toolchain-ecp5/bin/nextpnr-ecp5
 ECPPACK = ~/.apio/packages/toolchain-ecp5/bin/ecppack
@@ -16,14 +18,16 @@ VERILOG_ECP5_FILES = \
 
 VERILOG_SOURCE := $(VERILOG_FILES) $(VERILOG_ECP5_FILES)
 
-.PHONY: sim
+.PHONY: sim clean
 
-all: hardware.bit
+all: $(PROJECT_NAME).bit
+
+upload: $(PROJECT_NAME).flash
 
 sim: top_tb.vvp
 	vvp top_tb.vvp
 
-%.vvp: %.v
+%.vvp:
 	iverilog -B "/home/john/.apio/packages/toolchain-iverilog/lib/ivl" -D VCD_OUTPUT=$(basename $(VERILOG_TESTBENCH)) $(VERILOG_TESTBENCH) $(VERILOG_SOURCE) -o $@
 
 %.json:
@@ -55,3 +59,7 @@ pll_%.v:
 	$(UJPROG) $<
 %.terminal: %.bit
 	$(UJPROG) -t -b 3000000 $<
+
+clean:
+	rm -v *.config *.bit .*.d *.svf *.vvp
+-include .*.d

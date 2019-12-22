@@ -18,7 +18,7 @@ module top
 
   // framebuffer
   reg [7:0] mem [0:2400];
-  parameter BOOT_SIZE = 478;
+  parameter BOOT_SIZE = 479;
   reg [7:0] boot [0:BOOT_SIZE];
   reg [9:0] boot_char;
   reg pop;
@@ -29,13 +29,14 @@ module top
   reg [1:0] cursor_on;
   assign cursor_blink = &clk_500khz;
 
-  reg boot_up;
+  wire boot_up;
+  assign boot_up = (boot_char < BOOT_SIZE);
 
   integer k;
 
   initial
   begin
-    $readmemh("fpga-wt-220-boot.mem", boot);
+    $readmemh("wt-220-header.mem", boot);
     for (k = 0; k < 2400; k = k + 1) begin
       mem[k] <= 32;
     end
@@ -92,7 +93,6 @@ module top
         p_y <= 0;
         valid <= 0;
         boot_char <= 0;
-        boot_up <= 1;
         pop <= 0;
       end else begin
         case (state)
@@ -145,18 +145,21 @@ module top
             valid <= 0;
           end
           2: begin // print char buffer
-            if (boot[boot_char] == 8'd13) begin// CR
-              p_y <= (p_y < 29) ? p_y + 1 : 0;
-            end else if (boot[boot_char] == 8'd10) begin // LFCR
-              p_y <= (p_y < 29) ? p_y + 1 : 0;
-              p_x <= 0;
+            if (boot_up) begin
+              if (boot[boot_char] == 8'd13) begin// CR
+                p_y <= (p_y < 29) ? p_y + 1 : 0;
+              end else if (boot[boot_char] == 8'd10) begin // LFCR
+                p_y <= (p_y < 29) ? p_y + 1 : 0;
+                p_x <= 0;
+              end else begin
+                valid <= 1;
+                display_char <= boot[boot_char];
+                state <= 1;
+              end
+              boot_char <= boot_char + 1;
             end else begin
-              valid <= 1;
-              display_char <= boot[boot_char];
-              state <= 1;
+              state <= 0;
             end
-            boot_char <= boot_up ? boot_char + 1 : 0;
-            boot_up <= boot_char < BOOT_SIZE - 1 ? 1 : 0;
           end
           3: begin
             display_char <= 8'd32;
