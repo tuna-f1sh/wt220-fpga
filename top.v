@@ -16,6 +16,7 @@ reg [7:0] mem [0:2400];
 parameter BOOT_SIZE = 568;
 reg [7:0] boot [0:BOOT_SIZE];
 reg [9:0] boot_char;
+reg pop;
 
 // ~500 kHz tick
 wire cursor_blink;
@@ -57,7 +58,6 @@ wire [11:0] pos;
 // char cords to place next char
 reg [6:0] p_x;
 reg [4:0] p_y;
-/* reg pop; */
 
 reg valid;
 reg [7:0] display_char;
@@ -67,20 +67,12 @@ assign pos = p_x + p_y*80;
 
 always @(posedge clk_25mhz) begin
   // put char in memory
-  /* if (pop) begin */
-  /*   for (k = 0; k < 2400; k = k + 1) begin */
-  /*     if (k < 2319) */
-  /*       mem[k] <= mem[k+80]; */
-  /*     else */
-  /*       mem[k] <= 8'd32; */
-  /*   end */
-  /* end */
   if (valid) begin
     mem[pos] <= display_char;
   // blink cursor
-  end else if (cursor_blink) begin
-    mem[pos] <= cursor_on ? 8'd95 : 8'd32;
-    cursor_on <= !cursor_on;
+  /* end else if (cursor_blink) begin */
+  /*   mem[pos] <= cursor_on ? 8'd95 : 8'd32; */
+  /*   cursor_on <= !cursor_on; */
   end
   display_data <= mem[(y >> 4) * 80 + (x>>3)];
   clk_500khz <= clk_500khz + 1;
@@ -96,42 +88,57 @@ always @(posedge clk_25mhz) begin
       valid <= 0;
       boot_char <= 0;
       boot_up <= 1;
-      /* pop <= 0; */
+      pop <= 0;
     end else begin
       case (state)
         0: begin  // receiving char
           if (rx_valid) begin
             if (uart_out == 8'd13) begin// CR
-              p_y <= p_y + 1;
+              p_y <= (p_y < 29) ? p_y + 1 : 0;
             end else if (uart_out == 8'd10) begin  // LF
               p_x <= 0;
             end else begin
               valid <= 1;
               display_char <= uart_out;
               state <= 1;
-              end
+            end
           end
-          /* pop <= 0; */
         end
         1: begin  // display char
-          if (p_x < 79)
+          if (p_x < 79) begin
             p_x <= p_x + 1;
-          else begin
-            if (p_y < 29)
+            if (pop) state <= 3;
+            else if (boot_up) state <= 2;
+            else state <= 0;
+          end else begin
+            // less than max lines
+            if (p_y < 29) begin
               p_y <= p_y + 1;
-            else
-              p_y <= 0;
-            p_x <= 0;
-            /* pop <= 1; */
+              p_x <= 0;
+              if (pop) state <= 3;
+              else if (boot_up) state <= 2;
+              else state <= 0;
+            end else begin
+              // if popping, it's done so return to rx state
+              if (pop) begin
+                p_y <= 29;
+                pop <= 0;
+                state <= 0;
+              // otherwise start popping
+              end else begin
+                state <= 3;
+                p_y <= 0;
+              end
+              p_x <= 0;
+            end
           end
           valid <= 0;
-          state <= boot_up ? 2 : 0;
         end
         2: begin // print char buffer
           if (boot[boot_char] == 8'd13) begin// CR
-            p_y <= p_y + 1;
-          end else if (boot[boot_char] == 8'd10) begin
-            p_y <= p_y + 1;
+            p_y <= (p_y < 29) ? p_y + 1 : 0;
+          end else if (boot[boot_char] == 8'd10) begin // LFCR
+            p_y <= (p_y < 29) ? p_y + 1 : 0;
             p_x <= 0;
           end else begin
             valid <= 1;
@@ -139,9 +146,15 @@ always @(posedge clk_25mhz) begin
             state <= 1;
           end
           boot_char <= boot_up ? boot_char + 1 : 0;
-          boot_up <= boot_char < BOOT_SIZE - 1 ? 1: 0;
-          /* pop <= 0; */
-      end
+          boot_up <= boot_char < 579 ? 1 : 0;
+        end
+        3: begin
+          // pop top line of buffer, shirt all lines up, clear bottom line
+          display_char <= (pos < 2320) ? mem[pos+80] : 8'd32;
+          valid <= 1;
+          pop <= 1;
+          state <= 1;
+        end
     endcase
   end
 end

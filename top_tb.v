@@ -10,7 +10,8 @@ reg rst;
 
 top uut (
   .clk_25mhz(clk_25mhz),
-  .gpdi_dp(gpdi_dp), .gpdi_dn(gpdi_dn),
+  .gpdi_dp(gpdi_dp),
+  .gpdi_dn(gpdi_dn),
   .ftdi_txd(ftdi_txd),
   .wifi_gpio0(wifi_gpio0)
 );
@@ -19,7 +20,8 @@ parameter PERIOD = 5; //adjust for your timescale
 
 initial begin
   $dumpfile("tb_output.vcd");
-  $dumpvars(2, tb_top);
+  /* $dumpvars(2, tb_top); */
+  $dumpvars;
   clk_25mhz = 1'b0;
   ftdi_txd = 1'b0;
   #(PERIOD/2);
@@ -34,7 +36,7 @@ initial begin
 end
 
 initial begin
-  #(PERIOD * 500) 
+  #(PERIOD * 2000) 
   $finish;
 end
 
