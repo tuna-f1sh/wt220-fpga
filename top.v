@@ -13,7 +13,8 @@ wire [9:0] y;
 
 // framebuffer
 reg [7:0] mem [0:2400];
-reg [7:0] boot [0:580];
+parameter BOOT_SIZE = 568;
+reg [7:0] boot [0:BOOT_SIZE];
 reg [9:0] boot_char;
 
 // ~500 kHz tick
@@ -22,7 +23,6 @@ reg [22:0] clk_500khz;
 reg [1:0] cursor_on;
 assign cursor_blink = &clk_500khz;
 
-/* wire boot_up = !((boot_char & 579) == 579); */
 reg boot_up;
 
 integer k;
@@ -67,19 +67,20 @@ assign pos = p_x + p_y*80;
 
 always @(posedge clk_25mhz) begin
   // put char in memory
-  if (valid) begin
-    mem[pos] <= display_char;
-  // blink cursor
-  end else if (cursor_blink) begin
-    mem[pos] <= cursor_on ? 8'd95 : 8'd32;
-    cursor_on <= !cursor_on;
-  /* end else if (pop) begin */
+  /* if (pop) begin */
   /*   for (k = 0; k < 2400; k = k + 1) begin */
   /*     if (k < 2319) */
   /*       mem[k] <= mem[k+80]; */
   /*     else */
   /*       mem[k] <= 8'd32; */
   /*   end */
+  /* end */
+  if (valid) begin
+    mem[pos] <= display_char;
+  // blink cursor
+  end else if (cursor_blink) begin
+    mem[pos] <= cursor_on ? 8'd95 : 8'd32;
+    cursor_on <= !cursor_on;
   end
   display_data <= mem[(y >> 4) * 80 + (x>>3)];
   clk_500khz <= clk_500khz + 1;
@@ -87,8 +88,7 @@ end
 
 reg [1:0] state;
 
-always @(posedge clk_25mhz)
-  begin
+always @(posedge clk_25mhz) begin
     if (!locked) begin
       state <= 2;
       p_x <= 0;
@@ -100,8 +100,7 @@ always @(posedge clk_25mhz)
     end else begin
       case (state)
         0: begin  // receiving char
-          if (rx_valid)
-            begin
+          if (rx_valid) begin
             if (uart_out == 8'd13) begin// CR
               p_y <= p_y + 1;
             end else if (uart_out == 8'd10) begin  // LF
@@ -140,7 +139,7 @@ always @(posedge clk_25mhz)
             state <= 1;
           end
           boot_char <= boot_up ? boot_char + 1 : 0;
-          boot_up <= boot_char < 579 ? 1: 0;
+          boot_up <= boot_char < BOOT_SIZE - 1 ? 1: 0;
           /* pop <= 0; */
       end
     endcase

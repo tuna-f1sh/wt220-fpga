@@ -51,7 +51,7 @@ center_text()
     printf "${left_border}${spacing}${text}${spacing}${right_border}\n"
 }
 
-lines=30
+lines=29
 # padding=$lines-6-2
 padding=0
 
