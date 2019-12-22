@@ -4,13 +4,13 @@ module tb_top;
 
 reg clk_25mhz;
 reg ftdi_txd;
-wire[3:0] gpdi_dp;
+wire[3:0] gpdi_dp, gpdi_dn;
 wire wifi_gpio0;
 reg rst;
 
 top uut (
   .clk_25mhz(clk_25mhz),
-  .gpdi_dp(gpdi_dp),
+  .gpdi_dp(gpdi_dp), .gpdi_dn(gpdi_dn),
   .ftdi_txd(ftdi_txd),
   .wifi_gpio0(wifi_gpio0)
 );
