@@ -2,3 +2,5 @@
 testbench
 hardware.*
 *.vcd
+.hardware*
+*.vvp
