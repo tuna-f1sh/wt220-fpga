@@ -70,9 +70,9 @@ always @(posedge clk_25mhz) begin
   if (valid) begin
     mem[pos] <= display_char;
   // blink cursor
-  /* end else if (cursor_blink) begin */
-  /*   mem[pos] <= cursor_on ? 8'd95 : 8'd32; */
-  /*   cursor_on <= !cursor_on; */
+  end else if (cursor_blink) begin
+    mem[pos] <= cursor_on ? 8'd95 : 8'd32;
+    cursor_on <= !cursor_on;
   end
   display_data <= mem[(y >> 4) * 80 + (x>>3)];
   clk_500khz <= clk_500khz + 1;
@@ -94,7 +94,12 @@ always @(posedge clk_25mhz) begin
         0: begin  // receiving char
           if (rx_valid) begin
             if (uart_out == 8'd13) begin// CR
-              p_y <= (p_y < 29) ? p_y + 1 : 0;
+              if (p_y < 29) begin
+                p_y <= p_y +1;
+              end else begin
+                state <= 3;
+                p_y <= 0;
+              end
             end else if (uart_out == 8'd10) begin  // LF
               p_x <= 0;
             end else begin
@@ -121,7 +126,7 @@ always @(posedge clk_25mhz) begin
             end else begin
               // if popping, it's done so return to rx state
               if (pop) begin
-                p_y <= 29;
+                p_y <= 0;
                 pop <= 0;
                 state <= 0;
               // otherwise start popping
@@ -146,11 +151,10 @@ always @(posedge clk_25mhz) begin
             state <= 1;
           end
           boot_char <= boot_up ? boot_char + 1 : 0;
-          boot_up <= boot_char < 579 ? 1 : 0;
+          boot_up <= boot_char < BOOT_SIZE ? 1 : 0;
         end
         3: begin
-          // pop top line of buffer, shirt all lines up, clear bottom line
-          display_char <= (pos < 2320) ? mem[pos+80] : 8'd32;
+          display_char <= 8'd32;
           valid <= 1;
           pop <= 1;
           state <= 1;
