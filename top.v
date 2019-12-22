@@ -13,7 +13,7 @@ wire [9:0] y;
 
 // framebuffer
 reg [7:0] mem [0:2400];
-parameter BOOT_SIZE = 568;
+parameter BOOT_SIZE = 478;
 reg [7:0] boot [0:BOOT_SIZE];
 reg [9:0] boot_char;
 reg pop;
@@ -151,7 +151,7 @@ always @(posedge clk_25mhz) begin
             state <= 1;
           end
           boot_char <= boot_up ? boot_char + 1 : 0;
-          boot_up <= boot_char < BOOT_SIZE ? 1 : 0;
+          boot_up <= boot_char < BOOT_SIZE - 1 ? 1 : 0;
         end
         3: begin
           display_char <= 8'd32;

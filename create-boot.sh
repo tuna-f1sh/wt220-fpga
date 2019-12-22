@@ -52,7 +52,7 @@ center_text()
 }
 
 lines=29
-# padding=$lines-6-2
+padding=4
 padding=0
 
 for ((i=0; i< padding/2; i++))
@@ -61,7 +61,6 @@ for ((i=0; i< padding/2; i++))
   done
 figlet -w 80 -c 'FPGA WT-220'
 center_text "JBR Engineering Research Ltd - 2019" "*" 2
-center_text "Press CR or connect serial device to continue" "=" 2
 for ((i=0; i< padding/2; i++))
   do
     echo ''
