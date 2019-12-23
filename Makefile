@@ -1,9 +1,12 @@
 PROJECT_NAME = WT-220-FPGA
 
-YOSYS_ECP5 = ~/.apio/packages/toolchain-yosys/share/yosys/ecp5
-NEXTPNR = ~/.apio/packages/toolchain-ecp5/bin/nextpnr-ecp5
-ECPPACK = ~/.apio/packages/toolchain-ecp5/bin/ecppack
-UJPROG = ~/.apio/packages/toolchain-ecp5/bin/ujprog
+TOOLCHAIN_PATH = ~/.apio/packages
+YOSYS_ECP5 = $(TOOLCHAIN_PATH)/toolchain-yosys/share/yosys/ecp5
+# YOSYS = $(TOOLCHAIN_PATH)/toolchain-yosys/bin/yosys
+YOSYS := $(shell which yosys)
+NEXTPNR = $(TOOLCHAIN_PATH)/toolchain-ecp5/bin/nextpnr-ecp5
+ECPPACK = $(TOOLCHAIN_PATH)/toolchain-ecp5/bin/ecppack
+UJPROG = $(TOOLCHAIN_PATH)/toolchain-ecp5/bin/ujprog
 LIBTRELLIS = ~/Projects/scratch/prjtrellis/libtrellis
 
 TOP_MODULE_FILE = top.v
@@ -24,14 +27,15 @@ all: $(PROJECT_NAME).bit
 
 upload: $(PROJECT_NAME).flash
 
-sim: top_tb.vvp
-	vvp top_tb.vvp
+sim: top.vvp
+	vvp top.vvp
+	rm top.vvp
 
-%.vvp:
-	iverilog -B "/home/john/.apio/packages/toolchain-iverilog/lib/ivl" -D VCD_OUTPUT=$(basename $(VERILOG_TESTBENCH)) $(VERILOG_TESTBENCH) $(VERILOG_SOURCE) -o $@
+%.vvp: %_tb.v $(VERILOG_SOURCE) $(VERILOG_TESTBENCH)
+	iverilog -B "/home/john/.apio/packages/toolchain-iverilog/lib/ivl" -D VCD_OUTPUT=$(basename $<) $(VERILOG_TESTBENCH) $(VERILOG_SOURCE) -o $@
 
-%.json:
-	yosys \
+%.json: $(VERILOG_FILES)
+	$(YOSYS) \
 		-p "synth_ecp5 -json $@" \
 		-E .$(basename $@).d \
 		-q \
@@ -61,5 +65,5 @@ pll_%.v:
 	$(UJPROG) -t -b 3000000 $<
 
 clean:
-	rm -v *.config *.bit .*.d *.svf *.vvp
+	rm -v *.config *.bit .*.d *.svf *.json
 -include .*.d

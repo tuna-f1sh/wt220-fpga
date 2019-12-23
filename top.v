@@ -10,7 +10,7 @@ module top
 );
 
   assign wifi_gpio0 = 1'b1;
-  assign led = 8'h00;
+  /* assign led = 8'h00; */
 
   wire [23:0] color;
   wire [9:0] x;
@@ -200,6 +200,6 @@ module top
   wire ps2data = usb_fpga_dn;
   wire [7:0] ps2char;
 
-  ps2kbd kbd(clk_25mhz, ps2clk, ps2data, ps2char, , );
+  ps2kbd kbd(clk_25mhz, ps2clk, ps2data, led, , );
 
 endmodule
